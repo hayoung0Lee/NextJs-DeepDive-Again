@@ -1,14 +1,14 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Hello
+name: Push to Hayoung's Blog
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
       # Runs a single command using the runners shell
       - name: Run a one-line script
@@ -31,6 +31,23 @@ jobs:
 
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github)}}
+          GITHUB_NAME: ${{ github.actor }}
+          GITHUB_EMAIL: ${{ github.event.commits[0].committer.email }}
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+          echo "GITHUB_CONTEXT => $GITHUB_CONTEXT"
+          echo "GITHUB_EMAIL => $GITHUB_EMAIL"
+          git config --global user.email "${GITHUB_EMAIL}"
+          git config --global user.name "${GITHUB_NAME}"
+          git config --global user.username "${GITHUB_NAME}"
+          git clone https://hayoung0Lee:${{ secrets.NEXT_TOKEN }}@github.com/hayoung0Lee/hayoung0Lee.github.io.git
+          git branch -a
+          cd hayoung0Lee.github.io
+          git checkout -b preview
+          cp -r ../memo ./src/markdown-pages/project
+          git add .
+          git commit -m "Update Next.js Post"
+          git push origin preview --force
