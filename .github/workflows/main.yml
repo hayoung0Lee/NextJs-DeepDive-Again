@@ -30,6 +30,7 @@ jobs:
         run: echo Hello, world!
 
       # Runs a set of commands using the runners shell
+      # FIXME: 파일이 변했을때만 동작하도록 하기, blog쪽에서 커밋오면 알아서 풀리퀘스트 하고 머지하도록 만들기
       - name: Run a multi-line script
         env:
           GITHUB_CONTEXT: ${{ toJson(github)}}
@@ -47,7 +48,7 @@ jobs:
           git branch -a
           cd hayoung0Lee.github.io
           git checkout -b preview
-          cp -r ../memo ./src/markdown-pages/project
+          cp ../memo/* ./src/markdown-pages/project/
           git add .
           git commit -m "Update Next.js Post"
           git push origin preview --force
