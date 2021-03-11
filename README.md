@@ -1,7 +1,5 @@
 # NextJs-DeepDive-Again
 
-update
-
 ## Contents
 
 ## Related
