@@ -1,6 +1,6 @@
 ---
 slug: "/project/next/how-pages-work"
-title: "Next.js 의 Page는 어떻게 동작하나"
+title: "Next.js 의 Page는 어떻게 동작하나 + 코드 진짜 까보기"
 ---
 
 ### Next.js 의 Page는 어떻게 동작하나
@@ -135,3 +135,101 @@ export async function getServerSideProps() {
 ```
 
 사용버만 보면 `getStaticProps`랑 비슷한데, 가장 큰 차이점은 `getServerSideProps`는 매번 호출 된다는 것이다.
+
+### Next가 내부에서 어떻게 동작하는지 궁금해서 까본다.
+
+까볼때, 우선 prettier설정을 바꿔서([참고](https://github.com/prettier/prettier-vscode/issues/1081)) `npm run dev` 나 `npm run start`를 했을때의 동작을 본다.
+
+1. 우선 npm run dev라고 입력하면 `package.json`에서 `next dev`가 실행된다. 이때 next는 path에 등록되있어서 바로 사용할 수 있다.
+2. node_modules내의 next 폴더에 가면 아래의 내용이 있다.
+   <img src="../memo-next/next_modules.png" alt="next module" onerror="this.src='../../markdown-images/memo-next/next_modules.png';" />
+
+여기 최상단에 있는 파일들은 열어보니까 dist에 있는걸 가져와서 exports하고있어서 dist 폴더 내부를 살펴보기로 했다(이렇게 큰 패키지는 어떻게 구성되는지 잘 모르기때문에 일단 느낌대로 따라가고 있다. )
+
+3. 일단 젤처음에 시작되는 next executable이 어떻게 생겼는지를 살펴보려고 한다.
+   <img src="../memo-next/next_executable.png" alt="next executable" onerror="this.src='../../markdown-images/memo-next/next_executable.png';" />
+
+- 얘는 commands를 실행하는 부분으로 구성되어있다.(default는 dev)
+- commands가 있는 부분은 commands에 따라서 아래의 동작을 실행한다.
+
+```javascript
+const defaultCommand = "dev";
+const commands = {
+  build: async () =>
+    await Promise.resolve()
+      .then(() => _interopRequireWildcard(require("../cli/next-build")))
+      .then((i) => i.nextBuild),
+  start: async () =>
+    await Promise.resolve()
+      .then(() => _interopRequireWildcard(require("../cli/next-start")))
+      .then((i) => i.nextStart),
+  export: async () =>
+    await Promise.resolve()
+      .then(() => _interopRequireWildcard(require("../cli/next-export")))
+      .then((i) => i.nextExport),
+  dev: async () =>
+    await Promise.resolve()
+      .then(() => _interopRequireWildcard(require("../cli/next-dev")))
+      .then((i) => i.nextDev),
+  telemetry: async () =>
+    await Promise.resolve()
+      .then(() => _interopRequireWildcard(require("../cli/next-telemetry")))
+      .then((i) => i.nextTelemetry),
+};
+```
+
+각 동작을 저기 안에 두고 여기서 처리를 하는 식으로 구성되어있다. 그외의 부분들은 설정파일이 이상하거나 하는 부분을 처리하는 것 같다.
+
+- `_interopRequireWildcard`에 어떤 obj가 넘어가는지 보려고 콘솔에 찍어봣다.
+
+```javascript
+function _interopRequireWildcard(obj) {
+  console.log("next의 _interopRequireWildcard", obj);
+  if (obj && obj.__esModule) {
+    return obj;
+  }
+```
+
+<img src="../memo-next/interop.png" alt="next executable" onerror="this.src='../../markdown-images/memo-next/interop.png';" />
+
+이렇게 두번나오는데 왜 두번인지는 잘 모르겠다!!! 형태가 다른데, 뭔가 처리할텐데 거기까진 파악이 어렵다.
+
+4. next-dev안에 startServer
+   이파일은 next dev 했을때 실행되는 부분으로 파악된다.
+
+<img src="../memo-next/next-dev-code.png" alt="next-dev-code" onerror="this.src='../../markdown-images/memo-next/next-dev-code.png';" />
+
+코드에 저렇게 추가해서 진짜 여기까지 와서 실행하는지 한번 봤다.
+
+<img src="../memo-next/next-dev-result.png" alt="next-dev-result" onerror="this.src='../../markdown-images/memo-next/next-dev-result.png';" />
+
+실제로 여기서 실행 중이었다.
+
+startServer까지 이렇게 도달하는구나! Port가 사용중이다이런에러도 요쪽에서 처리중이었다.
+
+- 아래는 start-server가 어떻게 생겼는지 본건데 여기서 createServer를 호출하고 있다.
+  <img src="../memo-next/start-server.png" alt="start-server" onerror="this.src='../../markdown-images/memo-next/start-server.png';" />
+
+  이 이상은 더이상 파악이 조금 어려워서 createServer가 있는 부분을 찾아보았다.
+
+5. CreateServer가 있는곳: `next/dist/server/next.js`
+   여기서 CreateServer를 하고 있다.
+
+```javascript
+function createServer(options) {
+  console.log("next create server", options);
+  const standardEnv = ["production", "development", "test"];
+  if (options == null) {
+    throw new Error(
+```
+
+이렇게 찍어보면
+
+<img src="../memo-next/createServer.png" alt="createServer" onerror="this.src='../../markdown-images/memo-next/createServer.png';" />
+
+6. 파악하고 싶은것 pages가 어떻게 대강 처리되는지 로직
+   진행중...
+
+### 후기
+
+JavaScript로 이런 프레임워크를 만들어내는 사람들은 멋있다..
