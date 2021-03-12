@@ -49,6 +49,7 @@ jobs:
           cd hayoung0Lee.github.io
           git checkout -b preview
           cp ../memo/* ./src/markdown-pages/project/
+          cp -r ../memo-next ./src/markdown-images/memo-next/
           git add .
           git commit -m "Update Next.js Post"
           git push origin preview --force
